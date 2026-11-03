@@ -108,13 +108,44 @@ repo/
 
 Maintain additional modules only when useful; required entry points and outputs must remain discoverable. Do not store secrets, account credentials, API keys, or tokens in the repository.
 
-## 7. Multi-agent orchestration and independent verification
+## 7. Multi-agent orchestration: ChatGPT + DeepSeek + Kimi
 
-- If configured, use `codex-lead` as coordinator, `gemini-math` for independent mathematical review, `deepseek-numerical` for numerical implementation/optimization, and another independent reviewer for reproducibility and adversarial testing.
-- **Check actual agent availability before dispatch.** If any agent is unavailable, use an existing alternative and disclose the substitution; do not claim an unavailable agent ran.
-- Subagents must use **distinct file ownership** for parallel coding. The lead integrates changes and settles interface/parameter conventions.
-- Run automated and numerical checks for: GBM moments; BS MC z-score; payoff boundary cases; no barrier-overshoot counting error; discrete geometric-Asian expectation; covariance and antithetic standard errors; pathwise/finite-difference Greeks; convergence; NumPy/PyTorch agreement; CVaR upper-tail orientation; transaction cost sign/timing; absence of foresight; independence of train/test paths; complete benchmark coverage; offline reproduction.
-- Independent reviewers must produce specific findings with reproducible evidence. Repair confirmed defects and rerun affected results. Preserve failures and explain unresolved limitations.
+**Approved execution environment:** Use **OpenCode or an approved OpenCode-compatible terminal agent** for all assignment-producing sessions. ChatGPT/OpenAI, DeepSeek, and Kimi refer to **models/providers inside OpenCode**, not standalone apps used instead of OpenCode. Do **not** invoke Gemini or depend on Gemini credentials.
+
+### 7.1 Roles and file ownership
+
+**ChatGPT / OpenAI — lead agent (`chatgpt-lead`, primary)**
+- Own the mathematical specification, risk-neutral convention, payoff definitions, shared interfaces, parameters, and experiment protocol. Make and document methodological decisions for group review.
+- Coordinate the other agents, integrate and debug all implementations, manage Git commits and reproducibility, run cross-engine tests, and prepare the **draft** English report and statement of work.
+- Own `AGENTS.md`, `README.md`, `pyproject.toml`, `data/fetch.py`, `data/metadata.json`, `code/compare.py`, `tests/integration_*`, and `report.md`; coordinate rather than concurrently edit subagent-owned files.
+- Independently check numerical claims, especially exact GBM moments, European BS z-scores, payoff conventions, risk measures, train/test segregation, and whether experimental conclusions follow from actual results.
+
+**DeepSeek — numerical engineering (`deepseek-numerical`, subagent)**
+- Primary coding responsibility for `code/approach1_pricing.py` and `code/approach2_hedging.py` and associated isolated numerical helper modules/tests.
+- Implement reproducible NumPy/PyTorch engines, Asian/barrier/digital payoffs, antithetic and geometric-Asian control variates, Greeks, RMSE experiments, profiling, MLP, P&L, CVaR training, and benchmark sweeps.
+- Produce runnable code and actual diagnostic output, numerical timings, memory/use-of-seed disclosures. Explain unstable gradients, failed training, and computational bottlenecks; never assert benchmarks passed without evidence.
+- Before integration, send the lead explicit contracts for function signatures, units, file paths, metric keys, seeds, and required runtime/dependencies.
+
+**Kimi — independent long-context audit (`kimi-review`, read-only subagent)**
+- Review `assignment.md`, `AGENTS.md`, source files, tests, metrics, figures, report and Git milestones **together** for cross-file consistency and coverage. Use Kimi as an independent reviewer, not as an authority whose assertions substitute for test results.
+- Audit derivations and numerical edge cases independently: GBM drift versus futures/Black-76 conventions; exact discrete geometric-Asian expectation; antithetic sampling units; pathwise Greek validity; finite-difference common random numbers; CVaR tail orientation; option premium and transaction cost timing; train/test leakage; 3x3 BS hedge benchmarks; data provenance; reproducibility.
+- Provide a prioritized issue list with precise file/line references, why each issue matters, and a reproducible test or correction proposal. **Do not edit implementation files or silently fix code.** The lead reviews findings and delegates confirmed fixes to DeepSeek or integrates them directly.
+- During final acceptance, compare every material report claim with actual generated metrics/figures and verify no required deliverable is missing.
+
+### 7.2 Dispatch protocol
+
+1. The ChatGPT lead inspects `opencode agent list`, `opencode models`, available credentials, the actual repository and Git history. Model/agent IDs are installation-specific; **do not invent a provider/model identifier**. If a required provider is not available, mark it BLOCKED and report it rather than pretending to use it.
+2. The lead publishes a compact shared interface and experiment plan: model interpretation, parameters, CLI, output schema, seeds, fixed payoffs, timing and accounting conventions. Then delegates independent work.
+3. DeepSeek implements the numerical modules; ChatGPT simultaneously owns infrastructure/data retrieval and tests **in separate files**. Kimi can review the specification immediately; after coding, it reviews the integrated snapshot without editing.
+4. ChatGPT runs all executable tests and simulations, dispatches confirmed numerical defects to DeepSeek, checks Kimi's findings, and repeats testing until actual PASS or a clearly documented unresolved failure.
+5. Each milestone generates a separate real Git commit. Maintain authentic OpenCode parent and child-agent session evidence for the eventual `SESSION.md` export. Never fabricate subagent calls, commits, benchmark numbers, or logs.
+6. If a subagent cannot run within OpenCode, disclose the specific blocker and any approved substitution. Do not silently switch to standalone apps that violate the assignment's terminal-agent rule.
+
+### 7.3 Independent verification checklist
+
+Run automated and numerical checks for: GBM moments; BS MC z-score; payoff boundary cases; no barrier-overshoot counting error; discrete geometric-Asian expectation; covariance and antithetic standard errors; pathwise/finite-difference Greeks; convergence; NumPy/PyTorch agreement; CVaR upper-tail orientation; transaction cost sign/timing; absence of foresight; independence of train/test paths; complete benchmark coverage; offline reproduction.
+
+Kimi's independent review must contain specific findings supported by reproducible evidence. ChatGPT must independently adjudicate those findings and ensure confirmed defects are repaired and the affected experiments rerun. Preserve failures and explain unresolved limitations.
 
 ## 8. Git, permissions, and session integrity
 
@@ -131,7 +162,7 @@ Prepare a factual **English draft** of `report.md` covering mathematical specifi
 Do not mark the work complete until:
 
 1. Five-year real-data coverage and metadata/offline fallback are verified.
-2. All three options are priced in **both** engines, and analytical checks are reported.
+2. All three required option payoffs are priced in **both** engines, and analytical checks are reported.
 3. All Option A requirements, numerical tables, and figures have actually run.
 4. All Option B training/test and mandatory cost/frequency combinations have actually run.
 5. Independent verification findings and repairs are recorded.
